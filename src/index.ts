@@ -1,20 +1,8 @@
-import express from "express";
-import http from "http";
 import { Server } from "socket.io";
-import cors from "cors";
 import { roomHandler } from "./room";
 import 'dotenv/config'
-const app = express();
 
-app.get("/health", (_, res) => {
-    res.send("Server is running");
-});
-
-app.use(cors);
-const port = process.env.port ?? 443;
-const server = http.createServer(app);
-
-const io = new Server(server, {
+const io = new Server({
     cors: {
         origin: "*",
         methods: ["GET", "POST"],
@@ -29,6 +17,6 @@ io.on("connection", (socket) => {
     });
 });
 
-server.listen(port, () => {
-    console.log(`listening on *:${port}`);
-});
+io.listen(443)
+
+
