@@ -3,7 +3,7 @@ import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import { roomHandler } from "./room";
-
+import 'dotenv/config'
 const app = express();
 
 app.get("/health", (_, res) => {
@@ -11,7 +11,7 @@ app.get("/health", (_, res) => {
 });
 
 app.use(cors);
-const port = 8080;
+const port = process.env.port ?? 443;
 const server = http.createServer(app);
 
 const io = new Server(server, {
