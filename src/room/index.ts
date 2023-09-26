@@ -1,7 +1,11 @@
 import { Socket } from "socket.io";
 import { v4 as uuidV4 } from "uuid";
 
-const rooms: Record<string, Record<string, IUser>> = {};
+const rooms: Record<string, Record<string, IUser>> = {
+    'venezuela': {},
+    'colombia': {},
+    'ecuador': {}
+};
 const chats: Record<string, IMessage[]> = {};
 interface IUser {
     peerId: string;

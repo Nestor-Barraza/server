@@ -3,6 +3,8 @@ import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import { roomHandler } from "./room";
+import dotenv from 'dotenv';
+dotenv.config()
 
 const app = express();
 const port = process.env.PORT ?? 443;
