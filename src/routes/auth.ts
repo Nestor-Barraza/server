@@ -21,6 +21,8 @@ authRoute.post('/login', async (req: Request, res: Response) => {
       }
     })
 
+    console.log({response, jwt, uid})
+
     const { email, role } = response.data as { message: string, role: string, email: string }
 
     const token = jsonwebtoken.sign({ uid, email, role }, JWT_SECRET, { expiresIn: '1d' })
