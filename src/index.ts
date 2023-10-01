@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import { roomHandler } from "./room";
 import dotenv from 'dotenv';
+import { authRoute } from "./routes/auth";
 dotenv.config()
 
 const app = express();
@@ -14,6 +15,8 @@ app.use(cors());
 app.get("/health", (_, res) => {
     res.send("Server is running");
 });
+
+app.use('/auth', authRoute);
 
 const server = http.createServer(app);
 const io = new Server(server, {

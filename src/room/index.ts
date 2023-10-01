@@ -1,16 +1,21 @@
 import { Socket } from "socket.io";
-import { v4 as uuidV4 } from "uuid";
+import jsonwebtoken from 'jsonwebtoken'
+import { JWT_SECRET } from "../constants";
+
 
 const rooms: Record<string, Record<string, IUser>> = {
   'venezuela': {},
   'colombia': {},
   'ecuador': {}
 };
-const chats: Record<string, IMessage[]> = {};
+type Roles = "driver" | "admin"
+
 interface IUser {
   peerId: string;
   userName: string;
+  role: Roles
 }
+
 interface IRoomParams {
   roomId: string;
   peerId: string;
@@ -18,28 +23,64 @@ interface IRoomParams {
 
 interface IJoinRoomParams extends IRoomParams {
   userName: string;
+  token: string;
 }
-interface IMessage {
-  content: string;
-  author?: string;
-  timestamp: number;
+
+interface TokenPayload {
+  uid: string
+  email: string
+  role: Roles
+  country?: string
+  iat: number
+  exp: number
 }
 
 export const roomHandler = (socket: Socket) => {
-  const createRoom = () => {
-    const roomId = uuidV4();
-    rooms[roomId] = {};
-    socket.emit("room-created", { roomId });
+  const sendError = (message: string) => {
+    socket.emit("error", { message })
+  }
+
+  const checkToken = (token: string): false | TokenPayload => {
+    try {
+      const payload = jsonwebtoken.verify(token, JWT_SECRET) as TokenPayload
+      return payload
+    } catch(error) {
+      console.log(error)
+      return false
+    }
+  }
+
+  const createRoom = ({ token } : { token: string }) => {
+
+    const payload = checkToken(token)
+
+    if (!payload) {
+      return sendError('token is required or is invalid')
+    }
+
+    socket.emit("room-created", { roomId: payload.country || Object.keys(rooms)[0] });
     console.log("user created the room");
   };
-  const joinRoom = ({ roomId, peerId, userName }: IJoinRoomParams) => {
+
+  const joinRoom = async ({ roomId, peerId, userName, token }: IJoinRoomParams) => {
+    if (!Object.keys(rooms).includes(roomId.toLowerCase())) {
+      return sendError(`room ${roomId} not found on rooms [${Object.keys(rooms).join()}]`)
+    }
+
+    const payload = checkToken(token)
+
+    if (!payload) {
+      return sendError('token is required or is invalid')
+    }
+
     if (!rooms[roomId]) rooms[roomId] = {};
-    if (!chats[roomId]) chats[roomId] = [];
-    socket.emit("get-messages", chats[roomId]);
     console.log("user joined the room", roomId, peerId, userName);
-    rooms[roomId][peerId] = { peerId, userName };
+    rooms[roomId][peerId] = { peerId, userName, role: payload.role };
     socket.join(roomId);
-    socket.to(roomId).emit("user-joined", { peerId, userName });
+    socket.to(roomId).emit("user-joined", { peerId, userName: payload.email, role: payload.role });
+    if (payload.role === "admin") {
+      socket.to(roomId).emit("emit-streaming");
+    }
     socket.emit("get-users", {
       roomId,
       participants: rooms[roomId],
@@ -56,43 +97,7 @@ export const roomHandler = (socket: Socket) => {
     socket.to(roomId).emit("user-disconnected", peerId);
   };
 
-  const startSharing = ({ peerId, roomId }: IRoomParams) => {
-    console.log({ roomId, peerId });
-    socket.to(roomId).emit("user-started-sharing", peerId);
-  };
-
-  const stopSharing = (roomId: string) => {
-    socket.to(roomId).emit("user-stopped-sharing");
-  };
-
-  const addMessage = (roomId: string, message: IMessage) => {
-    console.log({ message });
-    if (chats[roomId]) {
-      chats[roomId].push(message);
-    } else {
-      chats[roomId] = [message];
-    }
-    socket.to(roomId).emit("add-message", message);
-  };
-
-  const changeName = ({
-    peerId,
-    userName,
-    roomId,
-  }: {
-    peerId: string;
-    userName: string;
-    roomId: string;
-  }) => {
-    if (rooms[roomId] && rooms[roomId][peerId]) {
-      rooms[roomId][peerId].userName = userName;
-      socket.to(roomId).emit("name-changed", { peerId, userName });
-    }
-  };
   socket.on("create-room", createRoom);
   socket.on("join-room", joinRoom);
-  socket.on("start-sharing", startSharing);
-  socket.on("stop-sharing", stopSharing);
-  socket.on("send-message", addMessage);
-  socket.on("change-name", changeName);
+
 };
