@@ -77,6 +77,7 @@ export const roomHandler = (socket: Socket) => {
     console.log("user joined the room", roomId, peerId, userName);
     rooms[roomId][peerId] = { peerId, userName, role: payload.role };
     socket.join(roomId);
+    console.log({token, payload})
     socket.to(roomId).emit("user-joined", { peerId, userName: payload.email, role: payload.role });
     if (payload.role === "admin") {
       socket.to(roomId).emit("emit-streaming");

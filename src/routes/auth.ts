@@ -12,7 +12,9 @@ authRoute.post('/login', async (req: Request, res: Response) => {
   if (!jwt) {
     return res.status(401).json({ message: 'token is wrong' })
   }
-  const { user_id: uid } = jsonwebtoken.decode(jwt) as { user_id?: string }
+  const payload = jsonwebtoken.decode(jwt) as { user_id?: string }
+  console.log({payload})
+  const uid = payload.user_id
   try {
     const response = await axios.get(`${PARITY_SERVER}/streaming-auth/check-loggin`, {
       headers: {
