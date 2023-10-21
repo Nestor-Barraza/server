@@ -95,6 +95,7 @@ export const roomHandler = (socket: Socket) => {
 
   const leaveRoom = ({ peerId, roomId }: IRoomParams) => {
     // rooms[roomId] = rooms[roomId]?.filter((id) => id !== peerId);
+    delete rooms[roomId][peerId];
     socket.to(roomId).emit("user-disconnected", peerId);
   };
 
